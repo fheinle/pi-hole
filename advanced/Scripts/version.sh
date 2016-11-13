@@ -10,6 +10,14 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
+
 # Flags:
 latest=false
 current=false

@@ -13,6 +13,14 @@
 # Run this script as root or under sudo
 echo ":::"
 
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
+
 helpFunc() {
 	cat << EOM
 ::: Pull in domains from adlists
@@ -27,40 +35,28 @@ EOM
 }
 
 
-adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
-whitelistScript="pihole -w"
-whitelistFile=/etc/pihole/whitelist.txt
-blacklistFile=/etc/pihole/blacklist.txt
-
-#Source the setupVars from install script for the IP
-setupVars=/etc/pihole/setupVars.conf
-if [[ -f ${setupVars} ]];then
-	. /etc/pihole/setupVars.conf
-else
-	echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
-	echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
-	exit 1
-fi
+adListFile=$configDirectory/adlists.list
+adListDefault=$configDirectory/adlists.default
+whitelistScript="$installDirectory/pihole -w"
+whitelistFile=$configDirectory/whitelist.txt
+blacklistFile=$configDirectory/blacklist.txt
 
 #Remove the /* from the end of the IPv4addr.
 IPv4_address=${IPv4_address%/*}
 
 # Variables for various stages of downloading and formatting the list
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
+adList=$configDirectory/gravity.list
 justDomainsExtension=domains
-matterAndLight=${basename}.0.matterandlight.txt
-supernova=${basename}.1.supernova.txt
+matterAndLight=pihole.0.matterandlight.txt
+supernova=pihole.1.supernova.txt
 preEventHorizon=list.preEventHorizon
-eventHorizon=${basename}.2.supernova.txt
-accretionDisc=${basename}.3.accretionDisc.txt
+eventHorizon=pihole.2.supernova.txt
+accretionDisc=pihole.3.accretionDisc.txt
 
 skipDownload=false
 
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
-if [[ -r ${piholeDir}/pihole.conf ]]; then
+if [[ -r $configDirectory/pihole.conf ]]; then
 	echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
 
@@ -145,7 +141,7 @@ gravity_spinup() {
 		domain=$(echo "${url}" | cut -d'/' -f3)
 
 		# Save the file as list.#.domain
-		saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
+		saveLocation=$configDirectory/list.${i}.${domain}.${justDomainsExtension}
 		activeDomains[$i]=${saveLocation}
 
 		agent="Mozilla/10.0"
@@ -177,9 +173,9 @@ gravity_Schwarzchild() {
 	echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
-	truncate -s 0 ${piholeDir}/${matterAndLight}
+	truncate -s 0 $configDirectory/${matterAndLight}
 	for i in "${activeDomains[@]}"; do
-		cat "${i}" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
+		cat "${i}" | tr -d '\r' >> $configDirectory/${matterAndLight}
 	done
 	echo " done!"
 }
@@ -190,7 +186,7 @@ gravity_Blacklist() {
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
 	    echo -n "::: BlackListing $numBlacklisted domain${plural}..."
-	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
+	    cat ${blacklistFile} >> $configDirectory/${eventHorizon}
 	    echo " done!"
 	else
 	    echo "::: Nothing to blacklist!"
@@ -222,7 +218,7 @@ gravity_Whitelist() {
         plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
         echo -n "::: Whitelisting $numWhitelisted domain${plural}..."
         #print everything from preEventHorizon into eventHorizon EXCEPT domains in whitelist.txt
-        grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
+        grep -F -x -v -f ${whitelistFile} $configDirectory/${preEventHorizon} > $configDirectory/${eventHorizon}
         echo " done!"
 	else
 	    echo "::: Nothing to whitelist!"
@@ -232,9 +228,9 @@ gravity_Whitelist() {
 gravity_unique() {
 	# Sort and remove duplicates
 	echo -n "::: Removing duplicate domains...."
-	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
+	sort -u  $configDirectory/${supernova} > $configDirectory/${preEventHorizon}
 	echo " done!"
-	numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
+	numberOf=$(wc -l < $configDirectory/${preEventHorizon})
 	echo "::: $numberOf unique domains trapped in the event horizon."
 }
 
@@ -245,17 +241,17 @@ gravity_hostFormat() {
     if [[ -n "${IPv4_address}" && -n "${IPv6_address}" ]];then
 
         # Both IPv4 and IPv6
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        cat $configDirectory/${eventHorizon} | awk -v ipv4addr="$IPv4_address" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $configDirectory/${accretionDisc}
 
     elif [[ -n "${IPv4_address}" && -z "${IPv6_address}" ]];then
 
         # Only IPv4
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        cat $configDirectory/${eventHorizon} | awk -v ipv4addr="$IPv4_address" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $configDirectory/${accretionDisc}
 
     elif [[ -z "${IPv4_address}" && -n "${IPv6_address}" ]];then
 
         # Only IPv6
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        cat $configDirectory/${eventHorizon} | awk -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv6addr" "$0}' >> $configDirectory/${accretionDisc}
 
     elif [[ -z "${IPv4_address}" && -z "${IPv6_address}" ]];then
         echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
@@ -263,13 +259,13 @@ gravity_hostFormat() {
     fi
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-	cp ${piholeDir}/${accretionDisc} ${adList}
+	cp $configDirectory/${accretionDisc} ${adList}
 }
 
 # blackbody - remove any remnant files from script processes
 gravity_blackbody() {
 	# Loop through list files
-	for file in ${piholeDir}/*.${justDomainsExtension}; do
+	for file in $configDirectory/*.${justDomainsExtension}; do
 		# If list is in active array then leave it (noop) else rm the list
 		if [[ " ${activeDomains[@]} " =~ ${file} ]]; then
 			:
@@ -288,10 +284,10 @@ gravity_advanced() {
 	#awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' ${piholeDir}/${matterAndLight} | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
 	#Above line does not correctly grab domains where comment is on the same line (e.g 'addomain.com #comment')
 	#Add additional awk command to read all lines up to a '#', and then continue as we were
-	cat ${piholeDir}/${matterAndLight} | awk -F'#' '{print $1}' | awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+	cat $configDirectory/${matterAndLight} | awk -F'#' '{print $1}' | awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $configDirectory/${supernova}
 	echo " done!"
 
-	numberOf=$(wc -l < ${piholeDir}/${supernova})
+	numberOf=$(wc -l < $configDirectory/${supernova})
 	echo "::: ${numberOf} domains being pulled in by gravity..."
 
 	gravity_unique
@@ -301,7 +297,7 @@ gravity_reload() {
 	#Clear no longer needed files...
 	echo ":::"
 	echo -n "::: Cleaning up un-needed files..."
-	rm ${piholeDir}/pihole.*.txt
+	rm $configDirectory/pihole.*.txt
 	echo " done!"
 
 	# Reload hosts file
@@ -314,7 +310,7 @@ gravity_reload() {
 	#Now replace the line in dnsmasq file
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
-        pihole restartdns
+        $installDirectory/pihole restartdns
 }
 
 for var in "$@"; do
@@ -327,12 +323,12 @@ done
 
 if [[ "${forceGrav}" == true ]]; then
 	echo -n "::: Deleting exising list cache..."
-	rm /etc/pihole/list.*
+	rm $configDirectory/list.*
 	echo " done!"
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default $configDirectory/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
@@ -340,7 +336,7 @@ if [[ "${skipDownload}" == false ]]; then
     gravity_advanced
 else
     echo "::: Using cached Event Horizon list..."
-    numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
+    numberOf=$(wc -l < $configDirectory/${preEventHorizon})
 	echo "::: $numberOf unique domains trapped in the event horizon."
 fi
 gravity_Whitelist
@@ -350,4 +346,4 @@ gravity_hostFormat
 gravity_blackbody
 
 gravity_reload
-pihole status
+$installDirectory/pihole status

@@ -10,10 +10,17 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
 
 #Functions##############################################################################################################
 piLog="/var/log/pihole.log"
-gravity="/etc/pihole/gravity.list"
+gravity="$configDirectory/gravity.list"
 
 today=$(date "+%b %e")
 
@@ -23,10 +30,10 @@ CalcBlockedDomains() {
 		#Are we IPV6 or IPV4?
 		if [[ -n ${piholeIPv6} ]]; then
 			#We are IPV6
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
+			blockedDomainsTotal=$(wc -l $configDirectory/gravity.list | awk '{print $1/2}')
 		else
 			#We are IPV4
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1}')
+			blockedDomainsTotal=$(wc -l $configDirectory/gravity.list | awk '{print $1}')
 		fi
 	else
 		blockedDomainsTotal="Err."
@@ -43,7 +50,7 @@ CalcQueriesToday() {
 
 CalcblockedToday() {
 	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
-		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
+		blockedToday=$(cat ${piLog} | awk '$configDirectory/gravity.list/ && !/address/ {print $6}' | wc -l)
 	else
 		blockedToday="Err."
 	fi
@@ -62,7 +69,7 @@ CalcPercentBlockedToday() {
 }
 
 CheckIPv6() {
-	piholeIPv6file="/etc/pihole/.useIPv6"
+	piholeIPv6file="$configDirectory/.useIPv6"
 	if [[ -f ${piholeIPv6file} ]];then
 		# If the file exists, then the user previously chose to use IPv6 in the automated installer
 		piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
@@ -95,7 +102,7 @@ normalChrono() {
 		uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes."}'
 		echo "-------------------------------"
 		# Uncomment to continually read the log file and display the current domain being blocked
-		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
+		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "$configDirectory/gravity.list") print $7; else;}'
 
 		#uncomment next 4 lines to use original query count calculation
 		#today=$(date "+%b %e")

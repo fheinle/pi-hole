@@ -10,11 +10,18 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
+
 #globals
-basename=pihole
-piholeDir=/etc/${basename}
-whitelist=${piholeDir}/whitelist.txt
-blacklist=${piholeDir}/blacklist.txt
+piholeDir=$configDirectory
+whitelist=$configDirectory/whitelist.txt
+blacklist=$configDirectory/blacklist.txt
 reload=false
 addmode=true
 verbose=true
@@ -119,7 +126,7 @@ RemoveDomain() {
 
 Reload() {
 	# Reload hosts file
-	pihole -g -sd
+	$installDirectory/pihole -g -sd
 }
 
 Displaylist() {

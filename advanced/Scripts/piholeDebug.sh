@@ -12,6 +12,14 @@
 
 set -o pipefail
 
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
+
 ######## GLOBAL VARS ########
 VARSFILE="/etc/pihole/setupVars.conf"
 DEBUG_LOG="/var/log/pihole_debug.log"
@@ -19,10 +27,10 @@ DNSMASQFILE="/etc/dnsmasq.conf"
 DNSMASQCONFFILE="/etc/dnsmasq.d/01-pihole.conf"
 LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
 LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
-GRAVITYFILE="/etc/pihole/gravity.list"
-WHITELISTFILE="/etc/pihole/whitelist.txt"
-BLACKLISTFILE="/etc/pihole/blacklist.txt"
-ADLISTFILE="/etc/pihole/adlists.list"
+GRAVITYFILE="$configDirectory/gravity.list"
+WHITELISTFILE="$configDirectory/whitelist.txt"
+BLACKLISTFILE="$configDirectory/blacklist.txt"
+ADLISTFILE="$configDirectory/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 

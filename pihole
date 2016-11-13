@@ -11,6 +11,15 @@
 # (at your option) any later version.
 
 # Must be root to use this tool
+
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
+
 if [[ ! $EUID -eq 0 ]];then
 	if [ -x "$(command -v sudo)" ];then
 		exec sudo bash "$0" "$@"
@@ -22,28 +31,28 @@ if [[ ! $EUID -eq 0 ]];then
 fi
 
 whitelistFunc() {
-	/opt/pihole/list.sh "$@"
+	$installDirectory/list.sh "$@"
 	exit 0
 }
 
 blacklistFunc() {
-	/opt/pihole/list.sh "$@"
+	$installDirectory/list.sh "$@"
 	exit 0
 }
 
 debugFunc() {
-	/opt/pihole/piholeDebug.sh
+	$installDirectory/piholeDebug.sh
 	exit 0
 }
 
 flushFunc() {
-	/opt/pihole/piholeLogFlush.sh
+	$installDirectory/piholeLogFlush.sh
 	exit 0
 }
 
 
 updatePiholeFunc() {
-	/opt/pihole/update.sh
+	$installDirectory/update.sh
 	exit 0
 }
 
@@ -53,18 +62,18 @@ reconfigurePiholeFunc() {
 }
 
 updateGravityFunc() {
-	/opt/pihole/gravity.sh "$@"
+	$installDirectory/gravity.sh "$@"
 	exit 0
 }
 
 setupLCDFunction() {
-	/opt/pihole/setupLCD.sh
+	$installDirectory/setupLCD.sh
 	exit 0
 }
 
 queryFunc() {
 	domain=$2
-	for list in /etc/pihole/list.*; do
+	for list in $configDirectory/list.*; do
 		count=$(grep ${domain} $list | wc -l)
 		echo "::: ${list} (${count} results)"
 			if [[ ${count} > 0 ]]; then
@@ -77,19 +86,19 @@ queryFunc() {
 
 chronometerFunc() {
 	shift
-	/opt/pihole/chronometer.sh "$@"
+	$installDirectory/chronometer.sh "$@"
 	exit 0
 }
 
 
 uninstallFunc() {
-	/opt/pihole/uninstall.sh
+	$installDirectory/uninstall.sh
 	exit 0
 }
 
 versionFunc() {
 	shift
-	/opt/pihole/version.sh "$@"
+	$installDirectory/version.sh "$@"
 	exit 0
 }
 

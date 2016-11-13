@@ -12,6 +12,14 @@
 
 # Variables
 
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
+
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
@@ -79,11 +87,11 @@ if [ ! -d "/var/www/html/admin" ]; then #This is unlikely
 fi
 
 echo "::: Checking for updates..."
-piholeVersion=$(pihole -v -p -c)
-piholeVersionLatest=$(pihole -v -p -l)
+piholeVersion=$($installDirectory/pihole -v -p -c)
+piholeVersionLatest=$($installDirectory/pihole -v -p -l)
 
-webVersion=$(pihole -v -a -c)
-webVersionLatest=$(pihole -v -a -l)
+webVersion=$($installDirectory/pihole -v -a -c)
+webVersionLatest=$($installDirectory/pihole -v -a -l)
 
 echo ":::"
 echo "::: Pi-hole version is $piholeVersion (Latest version is $piholeVersionLatest)"
@@ -113,7 +121,7 @@ elif [[ ${piholeVersion} == ${piholeVersionLatest} && ${webVersion} != ${webVers
 	echo "::: Pi-hole Web Admin files out of date"
 	getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
 	echo ":::"
-	webVersion=$(pihole -v -a -c)
+	webVersion=$($installDirectory/pihole -v -a -c)
 	echo "::: Web Admin version is now at ${webVersion}"
 	echo "::: If you had made any changes in '/var/www/html/admin', they have been stashed using 'git stash'"
 	echo ""
@@ -122,7 +130,7 @@ elif [[ ${piholeVersion} != ${piholeVersionLatest} && ${webVersion} == ${webVers
 	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
 	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended
 	echo ":::"
-	piholeVersion=$(pihole -v -p -c)
+	piholeVersion=$($installDirectory/pihole -v -p -c)
 	echo "::: Pi-hole version is now at ${piholeVersion}"
 	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
 	echo ""
@@ -130,8 +138,8 @@ elif [[ ${piholeVersion} != ${piholeVersionLatest} && ${webVersion} != ${webVers
 	echo "::: Updating Everything"
 	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
 	/etc/.pihole/automated\ install/basic-install.sh --unattended
-	webVersion=$(pihole -v -a -c)
-	piholeVersion=$(pihole -v -p -c)
+	webVersion=$($installDirectory/pihole -v -a -c)
+	piholeVersion=$($installDirectory/pihole -v -p -c)
 	echo ":::"
 	echo "::: Pi-hole version is now at ${piholeVersion}"
 	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"

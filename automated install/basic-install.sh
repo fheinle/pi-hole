@@ -16,11 +16,19 @@
 #
 # curl -L install.pi-hole.net | bash
 
+if [[ -f /etc/pihole/setupVars.conf ]];
+then
+    source /etc/pihole/setupVars.conf
+else
+    echo "Setup variables not available, cannot continue" 1>&2
+    exit 1
+fi
+
 set -e
 ######## VARIABLES #########
 tmpLog=/tmp/pihole-install.log
-instalLogLoc=/etc/pihole/install.log
 setupVars=/etc/pihole/setupVars.conf
+instalLogLoc=$configDirectory/install.log
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
@@ -834,6 +842,8 @@ finalExports() {
 	echo "IPv6_address=${IPv6_address}"
 	echo "piholeDNS1=${piholeDNS1}"
 	echo "piholeDNS2=${piholeDNS2}"
+    echo "installDirectory"="/opt/pihole"
+    echo "configDirectory"="/etc/pihole"
     }>> "${setupVars}"
 }
 
